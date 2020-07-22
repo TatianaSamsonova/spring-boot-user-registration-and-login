@@ -19,7 +19,7 @@ public class EmailSenderService {
     private JavaMailSender javaMailSender;
 
     @Async
-    public void sendMail(SimpleMailMessage email){
+    public void sendEmail(SimpleMailMessage email){
         javaMailSender.send(email);
     }
 }

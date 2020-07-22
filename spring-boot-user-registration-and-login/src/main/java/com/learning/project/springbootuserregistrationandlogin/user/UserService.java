@@ -20,22 +20,39 @@ import java.util.Optional;
 
 @Service
 @AllArgsConstructor
-class UserService implements UserDetailsService {
+public class UserService implements UserDetailsService {
     //@AllArgsConstructor doesn't work with final
-    private UserRepository userRepository;
-    private BCryptPasswordEncoder bCryptPasswordEncoder;
-    private ConfirmationTokenService confirmationTokenService;
-    private EmailSenderService emailSenderService;
+    private  UserRepository userRepository;
 
+    private  BCryptPasswordEncoder bCryptPasswordEncoder;
+
+    private  ConfirmationTokenService confirmationTokenService;
+
+    private  EmailSenderService emailSenderService;
+
+    void sendConfirmationMail(String userMail, String token) {
+
+        final SimpleMailMessage mailMessage = new SimpleMailMessage();
+        mailMessage.setTo(userMail);
+        mailMessage.setSubject("Mail Confirmation Link!");
+        mailMessage.setFrom("<MAIL>");
+        mailMessage.setText(
+                "Thank you for registering. Please click on the below link to activate your account." + "http://localhost:8080/sign-up/confirm?token="
+                        + token);
+
+        emailSenderService.sendEmail(mailMessage);
+    }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+
         final Optional<User> optionalUser = userRepository.findByEmail(email);
 
         return optionalUser.orElseThrow(() -> new UsernameNotFoundException(MessageFormat.format("User with email {0} cannot be found.", email)));
+
     }
 
-    public void signUpUser(User user){
+    public void signUpUser(User user) {
 
         final String encryptedPassword = bCryptPasswordEncoder.encode(user.getPassword());
 
@@ -47,9 +64,11 @@ class UserService implements UserDetailsService {
 
         confirmationTokenService.saveConfirmationToken(confirmationToken);
 
+        sendConfirmationMail(user.getEmail(), confirmationToken.getConfirmationToken());
+
     }
 
-    void confirmUser(ConfirmationToken confirmationToken){
+    void confirmUser(ConfirmationToken confirmationToken) {
 
         final User user = confirmationToken.getUser();
 
@@ -58,18 +77,6 @@ class UserService implements UserDetailsService {
         userRepository.save(user);
 
         confirmationTokenService.deleteConfirmationToken(confirmationToken.getId());
-    }
-
-    void sendConfirmationMail(String userMail, String token){
-
-        final SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setTo(userMail);
-        mailMessage.setSubject("Mail Confirmation link!");
-        mailMessage.setFrom("<MAIL>");
-        mailMessage.setText("Thank you for registering. Please click on the below link to activate your account." + "http://localhost:8080/sign-up/confirm?token="
-                + token);
-
-        emailSenderService.sendMail(mailMessage);
 
     }
 }
